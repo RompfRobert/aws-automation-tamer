@@ -6,11 +6,15 @@
 
 ## 💻 Installation
 
-```bash
-# From PyPI (planned)
-pip install aws-tamer
+From PyPI (planned)
 
-# From source
+```bash
+pip install aws-tamer
+```
+
+From source
+
+```bash
 git clone https://github.com/your-username/aws-tamer.git
 cd aws-tamer
 pip install .
@@ -43,15 +47,13 @@ This will:
 
 Use `aat help` or `aws-tamer help` to list available services and actions:
 
-```
+```bash
 aat help
 ```
 
 ## 🛣️ Roadmap
 
 * To be added
-
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 🤝 Contributing
 
@@ -61,24 +63,8 @@ Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md).
 4. Push to the branch: `git push origin feature/your-feature`
 5. Open a Pull Request and describe your changes
 
-Please read [CODE\_OF\_CONDUCT.md](CODE_OF_CONDUCT.md) and [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
+Contributions welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) before contributing.
 
 ## 📜 License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## 🏷️ Topics
-
-```
-aws
-cli
-devops
-automation
-cloud
-ec2
-sysadmin
-infrastructure-as-code
-python
-multi-account
-open-source
-```
