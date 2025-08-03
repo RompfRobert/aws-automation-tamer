@@ -1,106 +1,18 @@
 """
 EC2 instance information retrieval module.
 
-This module provides functionality to find and display detailed information
+This module provides functionality to display detailed information
 about EC2 instances by their name tag across multiple AWS accounts.
 """
 
 import logging
-import boto3
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any
 from tabulate import tabulate
-from botocore.exceptions import ClientError, NoCredentialsError
 
-from libs.aws_session_manager import AssumeRoleSessionManager, AssumeRoleError
-from load_config import get_aws_accounts, get_default_region
+from ec2.find import find_instance_by_name
+from load_config import get_aws_accounts
 
 logger = logging.getLogger('aws-automation-tamer.ec2.info')
-
-
-def find_instance_by_name(server_name: str, config: Dict[str, Any]) -> Optional[Tuple[str, str, Dict[str, Any]]]:
-    """
-    Find an EC2 instance by name tag across all configured accounts.
-    
-    Args:
-        server_name: The name tag value to search for
-        config: Configuration dictionary containing AWS accounts
-        
-    Returns:
-        Tuple of (account_name, region, instance_data) if found, None otherwise
-        
-    Raises:
-        AssumeRoleError: If unable to assume role in any account
-    """
-    logger.info(f"Searching for instance with name tag: {server_name}")
-    
-    accounts = get_aws_accounts(config)
-    default_region = get_default_region(config)
-    session_manager = AssumeRoleSessionManager()
-    
-    # Search through all accounts
-    for account_name, account_id in accounts.items():
-        logger.debug(f"Searching in account: {account_name} ({account_id})")
-        
-        try:
-            # Get session for this account to get regions list
-            session = session_manager.assume_role(account_id, default_region)
-            ec2_client = session.client('ec2')
-            regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
-            logger.debug(f"Found {len(regions)} regions to search in account {account_name}")
-            
-            # Search in each region
-            for region in regions:
-                logger.debug(f"Searching in account {account_name}, region: {region}")
-                
-                try:
-                    # Create EC2 client for this specific region
-                    regional_session = session_manager.assume_role(account_id, region)
-                    ec2 = regional_session.client('ec2')
-                    
-                    # Search for instances with the specified name tag
-                    response = ec2.describe_instances(
-                        Filters=[
-                            {
-                                'Name': 'tag:Name',
-                                'Values': [server_name]
-                            },
-                            {
-                                'Name': 'instance-state-name',
-                                'Values': ['pending', 'running', 'shutting-down', 'stopping', 'stopped']
-                            }
-                        ]
-                    )
-                    
-                    # Check if any instances were found
-                    for reservation in response['Reservations']:
-                        for instance in reservation['Instances']:
-                            # Double-check the actual region from the availability zone
-                            actual_az = instance.get('Placement', {}).get('AvailabilityZone', '')
-                            if actual_az:
-                                # Extract region from AZ (e.g., 'eu-central-1a' -> 'eu-central-1')
-                                actual_region = actual_az[:-1] if actual_az[-1].isalpha() else region
-                                logger.info(f"Found instance {instance['InstanceId']} in account {account_name}, region {actual_region} (AZ: {actual_az})")
-                                return account_name, actual_region, instance
-                            else:
-                                logger.info(f"Found instance {instance['InstanceId']} in account {account_name}, region {region}")
-                                return account_name, region, instance
-                            
-                except ClientError as e:
-                    # Log but continue - some regions might not be accessible
-                    error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-                    if error_code not in ['UnauthorizedOperation', 'OptInRequired']:
-                        logger.warning(f"Error searching in region {region}: {error_code}")
-                    continue
-                    
-        except AssumeRoleError as e:
-            logger.error(f"Failed to assume role in account {account_name}: {e}")
-            continue
-        except Exception as e:
-            logger.error(f"Unexpected error in account {account_name}: {e}")
-            continue
-    
-    logger.info(f"Instance '{server_name}' not found in any configured account")
-    return None
 
 
 def format_instance_info(instance_data: Dict[str, Any], account_name: str, region: str) -> str:
